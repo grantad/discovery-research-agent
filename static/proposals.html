@@ -162,34 +162,12 @@
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .generating { animation: pulse 1.5s ease-in-out infinite; }
 
-        /* Fetch button */
-        .btn-fetch {
-            padding: 10px 18px; background: var(--gradient-upwork); color: white; border: none;
-            border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer;
-            transition: all 0.2s; white-space: nowrap; min-width: 80px;
+        .paste-hint {
+            margin-top: 8px; padding: 10px 14px; background: linear-gradient(135deg, rgba(20,168,0,0.06), rgba(0,184,148,0.04));
+            border: 1px solid rgba(20,168,0,0.15); border-radius: 8px; font-size: 12px;
+            color: var(--text-light); line-height: 1.5;
         }
-        .btn-fetch:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow); }
-        .btn-fetch:disabled { opacity: 0.7; cursor: not-allowed; }
-        .btn-fetch .spinner { display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; vertical-align: middle; }
-        .btn-fetch.loading .spinner { display: inline-block; }
-
-        .divider-or {
-            text-align: center; margin: 14px 0; position: relative;
-        }
-        .divider-or::before {
-            content: ''; position: absolute; left: 0; right: 0; top: 50%;
-            border-top: 1px solid var(--border);
-        }
-        .divider-or span {
-            background: var(--card); padding: 0 12px; font-size: 11px; color: var(--text-light);
-            position: relative; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;
-        }
-
-        .fetch-status {
-            font-size: 12px; margin-top: 6px; padding: 8px 12px; border-radius: 8px; display: none;
-        }
-        .fetch-status.success { display: block; background: rgba(0,184,148,0.1); color: var(--success); }
-        .fetch-status.error { display: block; background: rgba(255,107,107,0.1); color: var(--danger); }
+        .paste-hint strong { color: var(--text); }
     </style>
 </head>
 <body>
@@ -239,20 +217,15 @@
                     <!-- Upwork Form -->
                     <form id="upworkForm" onsubmit="return generateProposal(event, 'upwork')">
                         <div class="form-group">
-                            <label>Upwork Job URL or ID <span class="optional">(auto-fetch)</span></label>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" class="form-input" id="jobUrl" placeholder="https://www.upwork.com/jobs/~0123... or paste job ID" style="flex: 1;">
-                                <button type="button" class="btn-fetch" id="btnFetch" onclick="fetchUpworkJob()">
-                                    <span class="spinner" id="fetchSpinner"></span>
-                                    <span id="fetchText">Fetch</span>
-                                </button>
-                            </div>
+                            <label>Job URL <span class="optional">(for reference — saved with proposal)</span></label>
+                            <input type="text" class="form-input" id="jobUrl" placeholder="https://www.upwork.com/jobs/~0123..." style="margin-bottom: 4px;">
                         </div>
-                        <div class="fetch-status" id="fetchStatus"></div>
-                        <div class="divider-or"><span>or paste manually</span></div>
                         <div class="form-group">
                             <label>Job Description</label>
-                            <textarea class="form-textarea" id="jobDescription" placeholder="Paste the Upwork job description here, or use the Fetch button above..." required></textarea>
+                            <textarea class="form-textarea" id="jobDescription" placeholder="Copy the job description from Upwork and paste it here. Include the title, requirements, budget, and skills if visible." required style="min-height: 200px;"></textarea>
+                            <div class="paste-hint">
+                                <strong>Tip:</strong> On the Upwork job page, select all the text from the title down through the skills section, then paste here. The AI will parse it automatically.
+                            </div>
                         </div>
                         <button type="submit" class="btn-generate upwork" id="btnUpwork">
                             <span class="spinner"></span>
@@ -430,7 +403,10 @@
             let endpoint, body;
             if (mode === 'upwork') {
                 endpoint = '/api/proposal/upwork';
-                body = { job_description: document.getElementById('jobDescription').value };
+                body = {
+                    job_description: document.getElementById('jobDescription').value,
+                    job_url: document.getElementById('jobUrl').value,
+                };
             } else {
                 endpoint = '/api/proposal/client';
                 body = {
@@ -496,49 +472,6 @@
             const win = window.open('', '_blank');
             win.document.write(`<html><head><title>Proposal</title><style>body{font-family:'Inter',sans-serif;padding:40px;line-height:1.7;max-width:800px;margin:0 auto}h1{color:#6C5CE7}h2{color:#6C5CE7;border-bottom:2px solid #eee;padding-bottom:6px;margin-top:28px}blockquote{border-left:4px solid #6C5CE7;padding:12px 16px;background:#f8f9fe;margin:16px 0}</style></head><body>${content}</body></html>`);
             win.document.close(); win.print();
-        }
-
-        async function fetchUpworkJob() {
-            const urlInput = document.getElementById('jobUrl').value.trim();
-            if (!urlInput) { showToast('Enter a job URL or ID'); return; }
-
-            const btn = document.getElementById('btnFetch');
-            const status = document.getElementById('fetchStatus');
-            btn.disabled = true;
-            btn.classList.add('loading');
-            document.getElementById('fetchText').textContent = 'Fetching...';
-            status.className = 'fetch-status';
-            status.style.display = 'none';
-
-            try {
-                const resp = await fetch('/api/upwork/fetch', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: urlInput }),
-                });
-                const data = await resp.json();
-
-                if (resp.ok && data.description) {
-                    document.getElementById('jobDescription').value = data.description;
-                    status.className = 'fetch-status success';
-                    status.textContent = `Fetched: ${data.title || 'Job loaded'} ${data.budget ? '| Budget: ' + data.budget : ''}`;
-                    status.style.display = 'block';
-                    showToast('Job description loaded!');
-                } else {
-                    status.className = 'fetch-status error';
-                    status.textContent = data.error || 'Could not fetch job. Make sure you have run: uv run python upwork_scraper.py --login';
-                    status.style.display = 'block';
-                    showToast('Fetch failed — see status message');
-                }
-            } catch (err) {
-                status.className = 'fetch-status error';
-                status.textContent = 'Network error: ' + err.message;
-                status.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.classList.remove('loading');
-                document.getElementById('fetchText').textContent = 'Fetch';
-            }
         }
 
         function openProfileModal() { document.getElementById('profileModal').classList.add('show'); }
