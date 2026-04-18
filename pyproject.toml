@@ -1,0 +1,15 @@
+[project]
+name = "discovery-research-agent"
+version = "0.1.0"
+description = "Pre-discovery call research agent that auto-researches prospects and generates a one-pager briefing"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.0.0",
+    "ddgs>=7.0.0",
+    "rich>=13.0.0",
+    "python-dotenv>=1.0.0",
+    "jinja2>=3.1.0",
+]
+
+[project.scripts]
+research = "agent:main"
