@@ -13,6 +13,7 @@ Usage (CLI):
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -224,7 +225,7 @@ def format_profile(profile: dict) -> str:
 
 def save_proposal(content: str, proposal_type: str, label: str) -> Path:
     """Save proposal to output directory."""
-    safe_label = label.lower().replace(" ", "_")[:40]
+    safe_label = re.sub(r'[^a-z0-9_]', '_', label.lower())[:40].strip('_')
     date_str = datetime.now().strftime("%Y%m%d_%H%M")
     filename = f"proposal_{proposal_type}_{safe_label}_{date_str}.md"
     filepath = OUTPUT_DIR / filename
