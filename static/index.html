@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discovery Research Agent</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6C5CE7;
+            --primary-light: #A29BFE;
+            --primary-dark: #5A4BD1;
+            --accent: #00D2D3;
+            --accent-light: #55EFC4;
+            --warning: #FDCB6E;
+            --danger: #FF6B6B;
+            --success: #00B894;
+            --bg: #F8F9FE;
+            --card: #FFFFFF;
+            --text: #2D3436;
+            --text-light: #636E72;
+            --border: #E8E8F4;
+            --gradient-1: linear-gradient(135deg, #6C5CE7 0%, #00D2D3 100%);
+            --gradient-2: linear-gradient(135deg, #A29BFE 0%, #55EFC4 100%);
+            --shadow: 0 4px 24px rgba(108, 92, 231, 0.12);
+            --shadow-lg: 0 12px 48px rgba(108, 92, 231, 0.18);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background: var(--gradient-1);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(108, 92, 231, 0.3);
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            backdrop-filter: blur(8px);
+        }
+
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .logo p {
+            font-size: 12px;
+            opacity: 0.85;
+            font-weight: 400;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-header {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.25);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(8px);
+        }
+
+        .btn-header:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-1px);
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 28px;
+            min-height: calc(100vh - 82px);
+        }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; padding: 16px; }
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 18px 22px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-header h2 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .card-header .badge {
+            background: var(--gradient-2);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        .card-body { padding: 22px; }
+
+        /* --- FORM --- */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .form-group label .optional {
+            font-weight: 400;
+            color: var(--text-light);
+            font-size: 12px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            color: var(--text);
+            transition: all 0.2s;
+            background: var(--bg);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #B2BEC3;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px 24px;
+            background: var(--gradient-1);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn-primary .spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2.5px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-right: 8px;
+        }
+
+        .btn-primary.loading .spinner { display: inline-block; }
+        .btn-primary.loading .btn-text { display: inline; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* --- PROGRESS --- */
+        .progress-card {
+            display: none;
+        }
+
+        .progress-card.active {
+            display: block;
+        }
+
+        .progress-steps {
+            list-style: none;
+            padding: 0;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            font-size: 13px;
+            color: var(--text-light);
+            transition: all 0.3s;
+        }
+
+        .progress-step .step-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .progress-step.active {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .progress-step.active .step-icon {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.15);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .progress-step.done {
+            color: var(--success);
+        }
+
+        .progress-step.done .step-icon {
+            background: var(--success);
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.15); }
+            50% { box-shadow: 0 0 0 8px rgba(108, 92, 231, 0.08); }
+        }
+
+        .progress-detail {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        /* --- HISTORY --- */
+        .history-list {
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .history-item:hover {
+            background: var(--bg);
+            border-color: var(--border);
+        }
+
+        .history-item .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--gradient-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .history-item .info h4 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .history-item .info p {
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-light);
+            font-size: 13px;
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .briefing-card {
+            flex: 1;
+        }
+
+        .briefing-placeholder {
+            text-align: center;
+            padding: 80px 40px;
+            color: var(--text-light);
+        }
+
+        .briefing-placeholder .placeholder-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: var(--bg);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+        }
+
+        .briefing-placeholder h3 {
+            font-size: 18px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .briefing-placeholder p {
+            font-size: 14px;
+            max-width: 360px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* --- BRIEFING CONTENT --- */
+        .briefing-actions {
+            display: flex;
+            gap: 8px;
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .btn-action {
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+        }
+
+        .btn-action:hover {
+            background: var(--bg);
+            border-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .briefing-body {
+            padding: 28px;
+            line-height: 1.7;
+            overflow-y: auto;
+            max-height: calc(100vh - 220px);
+        }
+
+        .briefing-body h1 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .briefing-body h2 {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 28px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .briefing-body h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 8px;
+        }
+
+        .briefing-body p {
+            margin-bottom: 12px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .briefing-body strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .briefing-body ul, .briefing-body ol {
+            margin: 8px 0 16px 24px;
+            font-size: 14px;
+        }
+
+        .briefing-body li {
+            margin-bottom: 6px;
+            line-height: 1.6;
+        }
+
+        .briefing-body blockquote {
+            border-left: 4px solid var(--primary);
+            background: linear-gradient(135deg, rgba(108,92,231,0.06), rgba(0,210,211,0.04));
+            padding: 16px 20px;
+            border-radius: 0 12px 12px 0;
+            margin: 16px 0;
+            font-style: italic;
+            color: var(--text-light);
+        }
+
+        .briefing-body hr {
+            border: none;
+            border-top: 2px solid var(--border);
+            margin: 24px 0;
+        }
+
+        .briefing-body em {
+            color: var(--text-light);
+            font-size: 12px;
+        }
+
+        /* --- TOAST --- */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--text);
+            color: white;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 200;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <a href="/" class="logo">
+                <div class="logo-icon">🔍</div>
+                <div>
+                    <h1>Discovery Research Agent</h1>
+                    <p>AI-powered pre-call intelligence</p>
+                </div>
+            </a>
+            <div class="header-actions">
+                <button class="btn-header" onclick="showHistory()">Past Briefings</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <!-- Research Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>New Research</h2>
+                    <span class="badge">AI Powered</span>
+                </div>
+                <div class="card-body">
+                    <form id="researchForm" onsubmit="return runResearch(event)">
+                        <div class="form-group">
+                            <label>Prospect Name</label>
+                            <input type="text" class="form-input" id="nameInput"
+                                   placeholder="e.g. John Smith" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Company</label>
+                            <input type="text" class="form-input" id="companyInput"
+                                   placeholder="e.g. Acme Corp" required>
+                        </div>
+                        <div class="form-group">
+                            <label>LinkedIn URL <span class="optional">(optional)</span></label>
+                            <input type="url" class="form-input" id="linkedinInput"
+                                   placeholder="https://linkedin.com/in/...">
+                        </div>
+                        <button type="submit" class="btn-primary" id="submitBtn">
+                            <span class="spinner"></span>
+                            <span class="btn-text">Research Prospect</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Progress Card -->
+            <div class="card progress-card" id="progressCard">
+                <div class="card-header">
+                    <h2>Progress</h2>
+                </div>
+                <div class="card-body">
+                    <ul class="progress-steps">
+                        <li class="progress-step" id="step-research">
+                            <span class="step-icon">1</span>
+                            <div>
+                                <div>Web Research</div>
+                                <div class="progress-detail" id="step-research-detail">Searching the web...</div>
+                            </div>
+                        </li>
+                        <li class="progress-step" id="step-analyze">
+                            <span class="step-icon">2</span>
+                            <div>
+                                <div>AI Analysis</div>
+                                <div class="progress-detail" id="step-analyze-detail">Analyzing findings...</div>
+                            </div>
+                        </li>
+                        <li class="progress-step" id="step-generate">
+                            <span class="step-icon">3</span>
+                            <div>
+                                <div>Generate Briefing</div>
+                                <div class="progress-detail" id="step-generate-detail">Creating your report...</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="card" id="historyCard">
+                <div class="card-header">
+                    <h2>Recent Briefings</h2>
+                </div>
+                <div class="card-body" style="padding: 8px;">
+                    <div class="history-list" id="historyList">
+                        <div class="history-empty">No briefings yet. Run your first research!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <div class="card briefing-card" id="briefingCard">
+                <div class="briefing-actions" id="briefingActions" style="display: none;">
+                    <button class="btn-action" onclick="copyBriefing()">Copy Markdown</button>
+                    <button class="btn-action" onclick="downloadBriefing()">Download</button>
+                    <button class="btn-action" onclick="printBriefing()">Print</button>
+                </div>
+                <div class="briefing-body" id="briefingBody">
+                    <div class="briefing-placeholder">
+                        <div class="placeholder-icon">📋</div>
+                        <h3>Ready to Research</h3>
+                        <p>Enter a prospect's name and company to generate a comprehensive pre-call briefing with automation opportunities, conversation starters, and more.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let currentMarkdown = '';
+
+        // Load history on page load
+        document.addEventListener('DOMContentLoaded', loadHistory);
+
+        async function loadHistory() {
+            try {
+                const resp = await fetch('/api/history');
+                const data = await resp.json();
+                const list = document.getElementById('historyList');
+
+                if (data.length === 0) {
+                    list.innerHTML = '<div class="history-empty">No briefings yet. Run your first research!</div>';
+                    return;
+                }
+
+                list.innerHTML = data.map(b => `
+                    <div class="history-item" onclick="loadBriefing('${b.filename}')">
+                        <div class="avatar">${b.prospect.charAt(0).toUpperCase()}</div>
+                        <div class="info">
+                            <h4>${b.prospect}</h4>
+                            <p>${b.company} &middot; ${b.date}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load history:', e);
+            }
+        }
+
+        async function loadBriefing(filename) {
+            try {
+                const resp = await fetch(`/api/briefing/${filename}`);
+                const data = await resp.json();
+                currentMarkdown = data.markdown;
+                showBriefing(data.html);
+            } catch (e) {
+                showToast('Failed to load briefing');
+            }
+        }
+
+        function showBriefing(html) {
+            document.getElementById('briefingBody').innerHTML = html;
+            document.getElementById('briefingActions').style.display = 'flex';
+        }
+
+        function setStep(stepId, state, detail) {
+            const steps = ['step-research', 'step-analyze', 'step-generate'];
+            steps.forEach(id => {
+                const el = document.getElementById(id);
+                el.classList.remove('active', 'done');
+            });
+
+            // Mark previous steps as done
+            for (const id of steps) {
+                if (id === stepId) break;
+                document.getElementById(id).classList.add('done');
+            }
+
+            const el = document.getElementById(stepId);
+            el.classList.add(state);
+
+            if (detail) {
+                const detailEl = document.getElementById(`${stepId}-detail`);
+                if (detailEl) detailEl.textContent = detail;
+            }
+        }
+
+        async function runResearch(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('nameInput').value.trim();
+            const company = document.getElementById('companyInput').value.trim();
+            const linkedin = document.getElementById('linkedinInput').value.trim();
+
+            if (!name || !company) return;
+
+            // UI updates
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.classList.add('loading');
+            btn.querySelector('.btn-text').textContent = 'Researching...';
+
+            const progressCard = document.getElementById('progressCard');
+            progressCard.classList.add('active');
+
+            // Reset steps
+            setStep('step-research', 'active', 'Searching the web...');
+
+            // Clear previous briefing
+            document.getElementById('briefingBody').innerHTML = `
+                <div class="briefing-placeholder">
+                    <div class="placeholder-icon" style="animation: pulse 1.5s ease-in-out infinite;">🔍</div>
+                    <h3>Researching ${name} at ${company}...</h3>
+                    <p>Running web searches, analyzing results, and generating your briefing. This usually takes 30-60 seconds.</p>
+                </div>
+            `;
+            document.getElementById('briefingActions').style.display = 'none';
+
+            try {
+                const resp = await fetch('/api/research', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, company, linkedin }),
+                });
+
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        try {
+                            const data = JSON.parse(line.slice(6));
+
+                            if (data.stage === 'research') {
+                                setStep('step-research', 'active', data.message);
+                            } else if (data.stage === 'research_done') {
+                                setStep('step-analyze', 'active', data.message);
+                            } else if (data.stage === 'generating') {
+                                setStep('step-generate', 'active', data.message);
+                            } else if (data.stage === 'complete') {
+                                setStep('step-generate', 'done', 'Complete!');
+                                currentMarkdown = data.markdown;
+                                showBriefing(data.html);
+                                showToast('Briefing generated successfully!');
+                                loadHistory();
+                            }
+                        } catch (parseErr) {
+                            // skip
+                        }
+                    }
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message);
+                document.getElementById('briefingBody').innerHTML = `
+                    <div class="briefing-placeholder">
+                        <div class="placeholder-icon">⚠️</div>
+                        <h3>Something went wrong</h3>
+                        <p>${err.message}</p>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                btn.querySelector('.btn-text').textContent = 'Research Prospect';
+                setTimeout(() => progressCard.classList.remove('active'), 3000);
+            }
+        }
+
+        function copyBriefing() {
+            navigator.clipboard.writeText(currentMarkdown)
+                .then(() => showToast('Copied to clipboard!'))
+                .catch(() => showToast('Copy failed'));
+        }
+
+        function downloadBriefing() {
+            const blob = new Blob([currentMarkdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'briefing.md';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Downloaded!');
+        }
+
+        function printBriefing() {
+            const content = document.getElementById('briefingBody').innerHTML;
+            const win = window.open('', '_blank');
+            win.document.write(`
+                <html><head><title>Discovery Briefing</title>
+                <style>
+                    body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.7; max-width: 800px; margin: 0 auto; }
+                    h1 { color: #6C5CE7; } h2 { color: #6C5CE7; border-bottom: 2px solid #eee; padding-bottom: 6px; margin-top: 28px; }
+                    blockquote { border-left: 4px solid #6C5CE7; padding: 12px 16px; background: #f8f9fe; margin: 16px 0; }
+                </style></head><body>${content}</body></html>
+            `);
+            win.document.close();
+            win.print();
+        }
+
+        function showHistory() {
+            document.getElementById('historyCard').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>

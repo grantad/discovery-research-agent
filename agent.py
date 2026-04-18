@@ -79,7 +79,12 @@ def search_web(query: str, max_results: int = 8) -> list[dict]:
         return []
 
 
-def research_prospect(name: str, company: str, linkedin_url: str | None = None) -> dict:
+def research_prospect(
+    name: str,
+    company: str,
+    linkedin_url: str | None = None,
+    on_progress: callable = None,
+) -> dict:
     """Run multiple search queries to gather prospect intelligence."""
     console.print("\n[bold blue]🔍 Researching prospect...[/bold blue]\n")
 
@@ -95,8 +100,10 @@ def research_prospect(name: str, company: str, linkedin_url: str | None = None) 
         searches["linkedin"] = f"site:linkedin.com {name} {company}"
 
     all_results = {}
-    for label, query in searches.items():
+    for i, (label, query) in enumerate(searches.items()):
         console.print(f"  Searching: [dim]{query}[/dim]")
+        if on_progress:
+            on_progress("searching", i + 1, len(searches), query)
         results = search_web(query)
         all_results[label] = results
 

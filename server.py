@@ -1,0 +1,158 @@
+"""
+Web UI for Discovery Call Research Agent
+==========================================
+FastAPI server with SSE streaming for real-time progress updates.
+
+Usage:
+    uv run python server.py
+    # Then open http://localhost:8000
+"""
+
+import asyncio
+import json
+import os
+from datetime import datetime
+from pathlib import Path
+
+import markdown
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from openai import OpenAI
+
+from agent import (
+    research_prospect,
+    generate_briefing,
+    save_briefing,
+    BRIEFING_TEMPLATE,
+)
+
+load_dotenv()
+
+app = FastAPI(title="Discovery Research Agent")
+
+STATIC_DIR = Path(__file__).parent / "static"
+STATIC_DIR.mkdir(exist_ok=True)
+
+OUTPUT_DIR = Path(__file__).parent / "output"
+OUTPUT_DIR.mkdir(exist_ok=True)
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    return (STATIC_DIR / "index.html").read_text()
+
+
+@app.get("/api/history")
+async def history():
+    """List past briefings."""
+    briefings = []
+    for f in sorted(OUTPUT_DIR.glob("briefing_*.md"), reverse=True):
+        content = f.read_text()
+        # Extract prospect and company from first lines
+        lines = content.split("\n")
+        prospect = ""
+        company = ""
+        date = ""
+        for line in lines[:6]:
+            if line.startswith("**Prospect:**"):
+                prospect = line.replace("**Prospect:**", "").strip()
+            elif line.startswith("**Company:**"):
+                company = line.replace("**Company:**", "").strip()
+            elif line.startswith("**Date:**"):
+                date = line.replace("**Date:**", "").strip()
+        briefings.append({
+            "filename": f.name,
+            "prospect": prospect,
+            "company": company,
+            "date": date,
+        })
+    return briefings
+
+
+@app.get("/api/briefing/{filename}")
+async def get_briefing(filename: str):
+    """Get a specific briefing as HTML."""
+    filepath = OUTPUT_DIR / filename
+    if not filepath.exists() or not filepath.name.startswith("briefing_"):
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    md_content = filepath.read_text()
+    html = markdown.markdown(md_content, extensions=["extra", "sane_lists"])
+    return {"html": html, "markdown": md_content}
+
+
+@app.post("/api/research")
+async def research(request: Request):
+    """Run research and stream progress via SSE."""
+    data = await request.json()
+    name = data.get("name", "").strip()
+    company = data.get("company", "").strip()
+    linkedin = data.get("linkedin", "").strip() or None
+
+    if not name or not company:
+        return JSONResponse({"error": "Name and company are required"}, status_code=400)
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return JSONResponse({"error": "OPENAI_API_KEY not configured"}, status_code=500)
+
+    async def event_stream():
+        loop = asyncio.get_event_loop()
+
+        # Step 1: Research
+        yield f"data: {json.dumps({'stage': 'research', 'message': 'Starting web research...'})}\n\n"
+
+        progress_updates = []
+
+        def on_progress(stage, current, total, detail):
+            progress_updates.append({
+                "stage": stage,
+                "current": current,
+                "total": total,
+                "detail": detail,
+            })
+
+        research_data = await loop.run_in_executor(
+            None, lambda: research_prospect(name, company, linkedin, on_progress)
+        )
+
+        total_results = sum(len(v) for v in research_data.values())
+        yield f"data: {json.dumps({'stage': 'research_done', 'message': f'Found {total_results} results from {len(research_data)} searches'})}\n\n"
+
+        # Step 2: Generate briefing
+        yield f"data: {json.dumps({'stage': 'generating', 'message': 'AI is analyzing research and generating briefing...'})}\n\n"
+
+        client = OpenAI(api_key=api_key)
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+        analysis = await loop.run_in_executor(
+            None, lambda: generate_briefing(name, company, research_data, linkedin, client, model)
+        )
+
+        linkedin_line = f"**LinkedIn:** {linkedin}" if linkedin else ""
+        briefing_md = BRIEFING_TEMPLATE.format(
+            name=name,
+            company=company,
+            date=datetime.now().strftime("%B %d, %Y"),
+            linkedin_line=linkedin_line,
+            analysis=analysis,
+        )
+
+        # Step 3: Save
+        filepath = await loop.run_in_executor(
+            None, lambda: save_briefing(briefing_md, name, company)
+        )
+
+        briefing_html = markdown.markdown(briefing_md, extensions=["extra", "sane_lists"])
+
+        yield f"data: {json.dumps({'stage': 'complete', 'message': 'Briefing ready!', 'html': briefing_html, 'markdown': briefing_md, 'filename': filepath.name})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    print("\n  Discovery Research Agent")
+    print("  http://localhost:8000\n")
+    uvicorn.run(app, host="0.0.0.0", port=8000)
