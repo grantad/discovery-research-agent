@@ -34,6 +34,7 @@ from proposal import (
     save_profile,
     save_proposal,
 )
+from upwork_scraper import normalize_job_url, fetch_job, format_job_for_proposal
 
 load_dotenv()
 
@@ -87,6 +88,29 @@ async def get_briefing(filename: str):
     md_content = filepath.read_text()
     html = markdown.markdown(md_content, extensions=["extra", "sane_lists"])
     return {"html": html, "markdown": md_content}
+
+
+@app.post("/api/upwork/fetch")
+async def fetch_upwork_job(request: Request):
+    """Fetch an Upwork job description from URL or ID."""
+    data = await request.json()
+    job_input = data.get("url", "").strip()
+    if not job_input:
+        return JSONResponse({"error": "URL or job ID required"}, status_code=400)
+
+    job_url = normalize_job_url(job_input)
+    loop = asyncio.get_event_loop()
+    job = await loop.run_in_executor(None, lambda: asyncio.run(fetch_job(job_url)))
+
+    if not job:
+        return JSONResponse({"error": "Could not fetch job. You may need to run: uv run python upwork_scraper.py --login"}, status_code=422)
+
+    return {
+        "title": job.get("title", ""),
+        "description": format_job_for_proposal(job),
+        "budget": job.get("budget", ""),
+        "url": job.get("url", ""),
+    }
 
 
 @app.post("/api/research")

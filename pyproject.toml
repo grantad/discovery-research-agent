@@ -12,6 +12,7 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn>=0.34.0",
     "markdown>=3.7",
+    "playwright>=1.49.0",
 ]
 
 [project.scripts]
