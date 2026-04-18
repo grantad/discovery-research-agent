@@ -27,6 +27,13 @@ from agent import (
     save_briefing,
     BRIEFING_TEMPLATE,
 )
+from proposal import (
+    generate_upwork_proposal,
+    generate_client_proposal,
+    load_profile,
+    save_profile,
+    save_proposal,
+)
 
 load_dotenv()
 
@@ -151,8 +158,125 @@ async def research(request: Request):
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
+@app.get("/proposals", response_class=HTMLResponse)
+async def proposals_page():
+    return (STATIC_DIR / "proposals.html").read_text()
+
+
+@app.get("/api/profile")
+async def get_profile():
+    return load_profile()
+
+
+@app.post("/api/profile")
+async def update_profile(request: Request):
+    data = await request.json()
+    save_profile(data)
+    return {"status": "ok"}
+
+
+@app.get("/api/proposals")
+async def list_proposals():
+    """List past proposals."""
+    proposals = []
+    for f in sorted(OUTPUT_DIR.glob("proposal_*.md"), reverse=True):
+        content = f.read_text()
+        lines = content.split("\n")
+        title = lines[0].replace("#", "").strip() if lines else f.name
+        ptype = "upwork" if "upwork" in f.name else "client"
+        proposals.append({
+            "filename": f.name,
+            "title": title,
+            "type": ptype,
+            "modified": datetime.fromtimestamp(f.stat().st_mtime).strftime("%B %d, %Y %H:%M"),
+        })
+    return proposals
+
+
+@app.get("/api/proposal/{filename}")
+async def get_proposal(filename: str):
+    filepath = OUTPUT_DIR / filename
+    if not filepath.exists() or not filepath.name.startswith("proposal_"):
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    md_content = filepath.read_text()
+    html = markdown.markdown(md_content, extensions=["extra", "sane_lists"])
+    return {"html": html, "markdown": md_content}
+
+
+@app.post("/api/proposal/upwork")
+async def create_upwork_proposal(request: Request):
+    data = await request.json()
+    job_description = data.get("job_description", "").strip()
+    if not job_description:
+        return JSONResponse({"error": "Job description is required"}, status_code=400)
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return JSONResponse({"error": "OPENAI_API_KEY not configured"}, status_code=500)
+
+    async def event_stream():
+        loop = asyncio.get_event_loop()
+        yield f"data: {json.dumps({'stage': 'generating', 'message': 'Analyzing job description...'})}\n\n"
+
+        profile = load_profile()
+        openai_client = OpenAI(api_key=api_key)
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+        proposal = await loop.run_in_executor(
+            None, lambda: generate_upwork_proposal(job_description, profile, openai_client, model)
+        )
+
+        filepath = await loop.run_in_executor(
+            None, lambda: save_proposal(proposal, "upwork", job_description[:30])
+        )
+
+        html = markdown.markdown(proposal, extensions=["extra", "sane_lists"])
+        yield f"data: {json.dumps({'stage': 'complete', 'message': 'Proposal ready!', 'html': html, 'markdown': proposal, 'filename': filepath.name})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.post("/api/proposal/client")
+async def create_client_proposal(request: Request):
+    data = await request.json()
+    client_name = data.get("client_name", "").strip()
+    company = data.get("company", "").strip()
+    notes = data.get("notes", "").strip()
+    context = data.get("context", "").strip()
+    my_business = data.get("my_business", "PalmettoDevs LLC").strip()
+
+    if not notes:
+        return JSONResponse({"error": "Call notes are required"}, status_code=400)
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return JSONResponse({"error": "OPENAI_API_KEY not configured"}, status_code=500)
+
+    async def event_stream():
+        loop = asyncio.get_event_loop()
+        yield f"data: {json.dumps({'stage': 'generating', 'message': 'Generating proposal from call notes...'})}\n\n"
+
+        openai_client = OpenAI(api_key=api_key)
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+        proposal = await loop.run_in_executor(
+            None, lambda: generate_client_proposal(
+                client_name, company, notes, context, my_business, openai_client, model
+            )
+        )
+
+        filepath = await loop.run_in_executor(
+            None, lambda: save_proposal(proposal, "client", f"{company}_{client_name}")
+        )
+
+        html = markdown.markdown(proposal, extensions=["extra", "sane_lists"])
+        yield f"data: {json.dumps({'stage': 'complete', 'message': 'Proposal ready!', 'html': html, 'markdown': proposal, 'filename': filepath.name})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
 if __name__ == "__main__":
     import uvicorn
-    print("\n  Discovery Research Agent")
+    print("\n  Discovery Research Agent + Proposal Generator")
     print("  http://localhost:8000\n")
     uvicorn.run(app, host="0.0.0.0", port=8000)

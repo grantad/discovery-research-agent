@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposal Generator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6C5CE7;
+            --primary-light: #A29BFE;
+            --accent: #00D2D3;
+            --accent-light: #55EFC4;
+            --success: #00B894;
+            --warning: #FDCB6E;
+            --orange: #E17055;
+            --bg: #F8F9FE;
+            --card: #FFFFFF;
+            --text: #2D3436;
+            --text-light: #636E72;
+            --border: #E8E8F4;
+            --gradient-1: linear-gradient(135deg, #6C5CE7 0%, #00D2D3 100%);
+            --gradient-upwork: linear-gradient(135deg, #14A800 0%, #00B894 100%);
+            --gradient-client: linear-gradient(135deg, #E17055 0%, #FDCB6E 100%);
+            --shadow: 0 4px 24px rgba(108, 92, 231, 0.12);
+            --shadow-lg: 0 12px 48px rgba(108, 92, 231, 0.18);
+        }
+
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        header {
+            background: var(--gradient-1);
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 4px 20px rgba(108, 92, 231, 0.3);
+        }
+
+        .header-inner {
+            max-width: 1200px; margin: 0 auto; padding: 20px 32px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .logo { display: flex; align-items: center; gap: 12px; color: white; text-decoration: none; }
+        .logo-icon { width: 42px; height: 42px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .logo h1 { font-size: 20px; font-weight: 700; }
+        .logo p { font-size: 12px; opacity: 0.85; }
+
+        .header-actions { display: flex; gap: 10px; }
+        .btn-header { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+        .btn-header:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 32px; display: grid; grid-template-columns: 420px 1fr; gap: 28px; min-height: calc(100vh - 82px); }
+        @media (max-width: 960px) { .container { grid-template-columns: 1fr; padding: 16px; } }
+
+        .card { background: var(--card); border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; }
+        .card-header { padding: 18px 22px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+        .card-header h2 { font-size: 15px; font-weight: 700; }
+        .card-body { padding: 22px; }
+
+        /* --- MODE TABS --- */
+        .mode-tabs { display: flex; gap: 0; margin-bottom: 20px; border-radius: 12px; overflow: hidden; border: 2px solid var(--border); }
+        .mode-tab {
+            flex: 1; padding: 14px; text-align: center; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; background: var(--bg); color: var(--text-light); border: none;
+        }
+        .mode-tab:first-child { border-right: 1px solid var(--border); }
+        .mode-tab.active-upwork { background: var(--gradient-upwork); color: white; }
+        .mode-tab.active-client { background: var(--gradient-client); color: white; }
+        .mode-tab:hover:not(.active-upwork):not(.active-client) { background: white; color: var(--text); }
+
+        .mode-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+
+        /* --- FORM --- */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+        .form-group .optional { font-weight: 400; color: var(--text-light); font-size: 12px; }
+        .form-input, .form-textarea {
+            width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 12px;
+            font-size: 14px; font-family: inherit; color: var(--text); transition: all 0.2s; background: var(--bg);
+        }
+        .form-textarea { min-height: 160px; resize: vertical; line-height: 1.6; }
+        .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1); }
+        .form-input::placeholder, .form-textarea::placeholder { color: #B2BEC3; }
+
+        .btn-generate {
+            width: 100%; padding: 14px 24px; color: white; border: none; border-radius: 12px;
+            font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-generate.upwork { background: var(--gradient-upwork); }
+        .btn-generate.client { background: var(--gradient-client); }
+        .btn-generate:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .btn-generate:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        .spinner { display: none; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+        .loading .spinner { display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- PROFILE BAR --- */
+        .profile-bar {
+            background: linear-gradient(135deg, rgba(108,92,231,0.08), rgba(0,210,211,0.05));
+            border: 1px solid rgba(108,92,231,0.15);
+            border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .profile-bar .info { font-size: 12px; color: var(--text-light); }
+        .profile-bar .name { font-weight: 600; color: var(--text); }
+        .btn-edit-profile { font-size: 11px; color: var(--primary); cursor: pointer; background: none; border: 1px solid var(--primary-light); padding: 4px 10px; border-radius: 6px; font-weight: 500; }
+        .btn-edit-profile:hover { background: var(--primary); color: white; }
+
+        /* --- PROPOSAL OUTPUT --- */
+        .proposal-actions { display: none; padding: 16px 22px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; }
+        .proposal-actions.visible { display: flex; }
+        .btn-action { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; background: white; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text); }
+        .btn-action:hover { background: var(--bg); border-color: var(--primary-light); color: var(--primary); }
+
+        .proposal-body { padding: 28px; line-height: 1.7; overflow-y: auto; max-height: calc(100vh - 220px); }
+        .proposal-body h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .proposal-body h2 { font-size: 17px; font-weight: 700; color: var(--primary); margin-top: 28px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid var(--border); }
+        .proposal-body h3 { font-size: 15px; font-weight: 600; margin-top: 20px; margin-bottom: 8px; }
+        .proposal-body p { margin-bottom: 12px; font-size: 14px; }
+        .proposal-body strong { font-weight: 600; }
+        .proposal-body ul, .proposal-body ol { margin: 8px 0 16px 24px; font-size: 14px; }
+        .proposal-body li { margin-bottom: 6px; line-height: 1.6; }
+        .proposal-body blockquote { border-left: 4px solid var(--primary); background: linear-gradient(135deg, rgba(108,92,231,0.06), rgba(0,210,211,0.04)); padding: 16px 20px; border-radius: 0 12px 12px 0; margin: 16px 0; }
+        .proposal-body hr { border: none; border-top: 2px solid var(--border); margin: 24px 0; }
+        .proposal-body em { color: var(--text-light); font-size: 12px; }
+
+        .placeholder { text-align: center; padding: 80px 40px; color: var(--text-light); }
+        .placeholder-icon { width: 80px; height: 80px; border-radius: 20px; background: var(--bg); margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
+        .placeholder h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
+        .placeholder p { font-size: 14px; max-width: 360px; margin: 0 auto; line-height: 1.6; }
+
+        /* --- HISTORY --- */
+        .history-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .history-item:hover { background: var(--bg); border-color: var(--border); }
+        .history-item .badge-type { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-upwork { background: rgba(20,168,0,0.1); color: #14A800; }
+        .badge-client { background: rgba(225,112,85,0.1); color: #E17055; }
+        .history-item .info h4 { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+        .history-item .info p { font-size: 11px; color: var(--text-light); }
+        .history-empty { text-align: center; padding: 24px; color: var(--text-light); font-size: 13px; }
+
+        /* --- MODAL --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 300; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; border-radius: 20px; width: 480px; max-width: 90vw; box-shadow: var(--shadow-lg); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 16px; font-weight: 700; }
+        .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); padding: 4px 8px; border-radius: 6px; }
+        .modal-close:hover { background: var(--bg); }
+        .modal-body { padding: 24px; }
+        .modal-body .form-group { margin-bottom: 14px; }
+        .modal-body .form-group label { font-size: 12px; }
+        .modal-body .form-input { padding: 10px 14px; font-size: 13px; }
+        .btn-save { width: 100%; padding: 12px; background: var(--gradient-1); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        .btn-save:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+
+        .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: white; padding: 14px 20px; border-radius: 12px; font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg); transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 400; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .generating { animation: pulse 1.5s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <a href="/proposals" class="logo">
+                <div class="logo-icon">📝</div>
+                <div>
+                    <h1>Proposal Generator</h1>
+                    <p>Upwork & client proposals in seconds</p>
+                </div>
+            </a>
+            <div class="header-actions">
+                <a href="/" class="btn-header">Research Agent</a>
+                <button class="btn-header" onclick="openProfileModal()">My Profile</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="sidebar" style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Mode + Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Generate Proposal</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Profile bar -->
+                    <div class="profile-bar" id="profileBar">
+                        <div class="info">
+                            <span class="name" id="profileName">No profile set</span>
+                            <br><span id="profileDetail">Set up your profile for personalized proposals</span>
+                        </div>
+                        <button class="btn-edit-profile" onclick="openProfileModal()">Edit</button>
+                    </div>
+
+                    <!-- Mode tabs -->
+                    <div class="mode-tabs">
+                        <button class="mode-tab active-upwork" id="tabUpwork" onclick="setMode('upwork')">
+                            <span class="mode-icon">💼</span>Upwork Proposal
+                        </button>
+                        <button class="mode-tab" id="tabClient" onclick="setMode('client')">
+                            <span class="mode-icon">🤝</span>Client Proposal
+                        </button>
+                    </div>
+
+                    <!-- Upwork Form -->
+                    <form id="upworkForm" onsubmit="return generateProposal(event, 'upwork')">
+                        <div class="form-group">
+                            <label>Job Description</label>
+                            <textarea class="form-textarea" id="jobDescription" placeholder="Paste the Upwork job description here..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn-generate upwork" id="btnUpwork">
+                            <span class="spinner"></span>
+                            <span class="btn-text">Generate Upwork Proposal</span>
+                        </button>
+                    </form>
+
+                    <!-- Client Form -->
+                    <form id="clientForm" style="display:none;" onsubmit="return generateProposal(event, 'client')">
+                        <div class="form-group">
+                            <label>Client Name</label>
+                            <input type="text" class="form-input" id="clientName" placeholder="e.g. John Smith">
+                        </div>
+                        <div class="form-group">
+                            <label>Company</label>
+                            <input type="text" class="form-input" id="clientCompany" placeholder="e.g. Acme Corp">
+                        </div>
+                        <div class="form-group">
+                            <label>Discovery Call Notes / Transcript</label>
+                            <textarea class="form-textarea" id="callNotes" placeholder="Paste your call notes, transcript, or summary here..." required style="min-height: 120px;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Additional Context <span class="optional">(optional)</span></label>
+                            <textarea class="form-textarea" id="extraContext" placeholder="Budget discussed, specific tools mentioned, timeline constraints..." style="min-height: 60px;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Your Business Name</label>
+                            <input type="text" class="form-input" id="myBusiness" value="PalmettoDevs LLC">
+                        </div>
+                        <button type="submit" class="btn-generate client" id="btnClient">
+                            <span class="spinner"></span>
+                            <span class="btn-text">Generate Client Proposal</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="card">
+                <div class="card-header"><h2>Recent Proposals</h2></div>
+                <div class="card-body" style="padding: 8px; max-height: 300px; overflow-y: auto;">
+                    <div id="historyList"><div class="history-empty">No proposals yet</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output -->
+        <div style="display: flex; flex-direction: column;">
+            <div class="card" style="flex: 1;">
+                <div class="proposal-actions" id="proposalActions">
+                    <button class="btn-action" onclick="copyProposal()">Copy Text</button>
+                    <button class="btn-action" onclick="copyMarkdown()">Copy Markdown</button>
+                    <button class="btn-action" onclick="downloadProposal()">Download</button>
+                    <button class="btn-action" onclick="printProposal()">Print</button>
+                </div>
+                <div class="proposal-body" id="proposalBody">
+                    <div class="placeholder">
+                        <div class="placeholder-icon">📝</div>
+                        <h3>Ready to Generate</h3>
+                        <p>Paste a job description for an Upwork proposal, or enter discovery call notes for a full client proposal. Your profile info will be used to personalize the output.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Your Profile</h3>
+                <button class="modal-close" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" class="form-input" id="profName" placeholder="Anthony Grant">
+                </div>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" class="form-input" id="profTitle" placeholder="AI Automation Consultant">
+                </div>
+                <div class="form-group">
+                    <label>Automations Built</label>
+                    <input type="text" class="form-input" id="profCount" placeholder="e.g. 15">
+                </div>
+                <div class="form-group">
+                    <label>Tools (comma-separated)</label>
+                    <input type="text" class="form-input" id="profTools" placeholder="n8n, Make, Claude Code, Vapi">
+                </div>
+                <div class="form-group">
+                    <label>Industries (comma-separated)</label>
+                    <input type="text" class="form-input" id="profIndustries" placeholder="e-commerce, healthcare, real estate">
+                </div>
+                <div class="form-group">
+                    <label>Proof Points (semicolon-separated)</label>
+                    <input type="text" class="form-input" id="profProof" placeholder="Built lead gen system saving 20hrs/week; Automated invoicing for 50-person firm">
+                </div>
+                <button class="btn-save" onclick="saveProfileModal()">Save Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let currentMode = 'upwork';
+        let currentMarkdown = '';
+        let currentText = '';
+
+        document.addEventListener('DOMContentLoaded', () => { loadProfile(); loadHistory(); });
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('tabUpwork').className = mode === 'upwork' ? 'mode-tab active-upwork' : 'mode-tab';
+            document.getElementById('tabClient').className = mode === 'client' ? 'mode-tab active-client' : 'mode-tab';
+            document.getElementById('upworkForm').style.display = mode === 'upwork' ? 'block' : 'none';
+            document.getElementById('clientForm').style.display = mode === 'client' ? 'block' : 'none';
+        }
+
+        async function loadProfile() {
+            try {
+                const resp = await fetch('/api/profile');
+                const p = await resp.json();
+                if (p.name) {
+                    document.getElementById('profileName').textContent = p.name;
+                    const details = [p.title, p.automations_built ? `${p.automations_built} automations` : null, (p.tools||[]).join(', ')].filter(Boolean).join(' · ');
+                    document.getElementById('profileDetail').textContent = details || 'Edit to add details';
+                    // Fill modal
+                    document.getElementById('profName').value = p.name || '';
+                    document.getElementById('profTitle').value = p.title || '';
+                    document.getElementById('profCount').value = p.automations_built || '';
+                    document.getElementById('profTools').value = (p.tools || []).join(', ');
+                    document.getElementById('profIndustries').value = (p.industries || []).join(', ');
+                    document.getElementById('profProof').value = (p.proof_points || []).join('; ');
+                }
+            } catch (e) {}
+        }
+
+        async function loadHistory() {
+            try {
+                const resp = await fetch('/api/proposals');
+                const data = await resp.json();
+                const list = document.getElementById('historyList');
+                if (!data.length) { list.innerHTML = '<div class="history-empty">No proposals yet</div>'; return; }
+                list.innerHTML = data.map(p => `
+                    <div class="history-item" onclick="loadProposal('${p.filename}')">
+                        <span class="badge-type ${p.type === 'upwork' ? 'badge-upwork' : 'badge-client'}">${p.type}</span>
+                        <div class="info">
+                            <h4>${p.title.substring(0, 50)}</h4>
+                            <p>${p.modified}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {}
+        }
+
+        async function loadProposal(filename) {
+            try {
+                const resp = await fetch(`/api/proposal/${filename}`);
+                const data = await resp.json();
+                currentMarkdown = data.markdown;
+                currentText = data.markdown.replace(/[#*_`>-]/g, '').replace(/\n{3,}/g, '\n\n');
+                document.getElementById('proposalBody').innerHTML = data.html;
+                document.getElementById('proposalActions').classList.add('visible');
+            } catch (e) { showToast('Failed to load proposal'); }
+        }
+
+        async function generateProposal(e, mode) {
+            e.preventDefault();
+            const btn = mode === 'upwork' ? document.getElementById('btnUpwork') : document.getElementById('btnClient');
+            btn.disabled = true;
+            btn.classList.add('loading');
+
+            let endpoint, body;
+            if (mode === 'upwork') {
+                endpoint = '/api/proposal/upwork';
+                body = { job_description: document.getElementById('jobDescription').value };
+            } else {
+                endpoint = '/api/proposal/client';
+                body = {
+                    client_name: document.getElementById('clientName').value,
+                    company: document.getElementById('clientCompany').value,
+                    notes: document.getElementById('callNotes').value,
+                    context: document.getElementById('extraContext').value,
+                    my_business: document.getElementById('myBusiness').value,
+                };
+            }
+
+            document.getElementById('proposalBody').innerHTML = '<div class="placeholder"><div class="placeholder-icon generating">✨</div><h3>Generating proposal...</h3><p>AI is crafting your proposal. This takes about 15-30 seconds.</p></div>';
+            document.getElementById('proposalActions').classList.remove('visible');
+
+            try {
+                const resp = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.stage === 'complete') {
+                                currentMarkdown = data.markdown;
+                                currentText = data.markdown.replace(/[#*_`>-]/g, '').replace(/\n{3,}/g, '\n\n');
+                                document.getElementById('proposalBody').innerHTML = data.html;
+                                document.getElementById('proposalActions').classList.add('visible');
+                                showToast('Proposal generated!');
+                                loadHistory();
+                            }
+                        } catch {}
+                    }
+                }
+            } catch (err) {
+                document.getElementById('proposalBody').innerHTML = `<div class="placeholder"><div class="placeholder-icon">⚠️</div><h3>Error</h3><p>${err.message}</p></div>`;
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+            }
+        }
+
+        function copyProposal() {
+            navigator.clipboard.writeText(currentText).then(() => showToast('Copied plain text!')).catch(() => showToast('Copy failed'));
+        }
+        function copyMarkdown() {
+            navigator.clipboard.writeText(currentMarkdown).then(() => showToast('Copied markdown!')).catch(() => showToast('Copy failed'));
+        }
+        function downloadProposal() {
+            const blob = new Blob([currentMarkdown], { type: 'text/markdown' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'proposal.md'; a.click();
+            showToast('Downloaded!');
+        }
+        function printProposal() {
+            const content = document.getElementById('proposalBody').innerHTML;
+            const win = window.open('', '_blank');
+            win.document.write(`<html><head><title>Proposal</title><style>body{font-family:'Inter',sans-serif;padding:40px;line-height:1.7;max-width:800px;margin:0 auto}h1{color:#6C5CE7}h2{color:#6C5CE7;border-bottom:2px solid #eee;padding-bottom:6px;margin-top:28px}blockquote{border-left:4px solid #6C5CE7;padding:12px 16px;background:#f8f9fe;margin:16px 0}</style></head><body>${content}</body></html>`);
+            win.document.close(); win.print();
+        }
+
+        function openProfileModal() { document.getElementById('profileModal').classList.add('show'); }
+        function closeProfileModal() { document.getElementById('profileModal').classList.remove('show'); }
+
+        async function saveProfileModal() {
+            const profile = {
+                name: document.getElementById('profName').value,
+                title: document.getElementById('profTitle').value,
+                automations_built: document.getElementById('profCount').value,
+                tools: document.getElementById('profTools').value.split(',').map(s => s.trim()).filter(Boolean),
+                industries: document.getElementById('profIndustries').value.split(',').map(s => s.trim()).filter(Boolean),
+                proof_points: document.getElementById('profProof').value.split(';').map(s => s.trim()).filter(Boolean),
+            };
+            await fetch('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(profile) });
+            closeProfileModal();
+            loadProfile();
+            showToast('Profile saved!');
+        }
+
+        document.getElementById('profileModal').addEventListener('click', function(e) { if (e.target === this) closeProfileModal(); });
+
+        function showToast(msg) {
+            const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>
